@@ -14,7 +14,7 @@ Nevertheless, there are other crucial aspects that we must consider. For example
 
 Both `CreateProcessWithTokenW/LogonW` call the **Secondary Logon Service (seclogon.dll, hosted in SvcHost.exe)** by making a Remote Procedure Call (RPC) through the `SeclCreateProcessWithLogonW` function to do the actual process creation. `SeclCreateProcessWithLogonW` calls `SlrCreateProcessWithLogon` which in turn ends up calling `CreateProcessAsUser`.
 
-<img width="1583" height="879" alt="image" src="https://github.com/user-attachments/assets/f8bd8466-5826-49bf-a4a0-c7c8b0c2f9f7" />
+<img width="1583" height="879" alt="495182902-f8bd8466-5826-49bf-a4a0-c7c8b0c2f9f7" src="https://github.com/user-attachments/assets/9bce42a1-a8a8-4584-884f-246eebf26d8b" />
 
 ## PPID Spoofing Introduction
 
@@ -24,7 +24,7 @@ When do we use these functions of the windows subsystem? For example, when we le
 
 In the above example, we are creating a new process (notepad.exe) with new credentials and **logon type 9**. If we inspect the process tree, it will appear to have a non-existent parent process, since the original parent was **runas.exe**, even though **SvcHost.exe** was the process that actually spawned it through `CreateProcessAsUser`. This happens due to **PPID spoofing**.
 
-<img width="579" height="467" alt="image" src="https://github.com/user-attachments/assets/e8e6a895-9177-4d81-8588-825efdac64ef" />
+<img width="579" height="467" alt="495228999-e8e6a895-9177-4d81-8588-825efdac64ef" src="https://github.com/user-attachments/assets/158196a6-8816-45d5-a8f9-6586e9cd3fa0" />
 
 Before Windows Vista there was no way to perform **PPID spoofing** via the Windows APIs. Vista added opaque lists of process and thread attribute lists managed with an API: `InitializeProcThreadAttributeList`, `UpdateProcThreadAttribute`, `DeleteProcThreadAttributeList`. This list is attached to process creation as member of `STARTUPINFOEX`:
 
@@ -65,11 +65,11 @@ Unfortunately, in this case the documentation is not quite accurate :/, `CreateP
 
 How do we prove this? First off, both APIs end up calling the `CreateProcessWithLogonCommonW` function, as shown below:
 
-<img width="980" height="573" alt="CreateProcessWithLogonCommonW-Pt1" src="https://github.com/user-attachments/assets/0e72502c-a487-42bd-9068-afd774efe4e8" />
+<img width="980" height="573" alt="495181243-0e72502c-a487-42bd-9068-afd774efe4e8" src="https://github.com/user-attachments/assets/e9ce3807-0bf2-4c95-853d-acd186d21a51" />
 
 `CreateProcessWithLogonCommonW` performs a bitwise AND to test if `EXTENDED_STARTUPINFO_PRESENT` and other flags were present, and if they were, the function returns with `ERROR_INVALID_PARAMETER (87)`:
 
-<img width="1112" height="356" alt="CreateProcessWithLogonCommonW-Pt2" src="https://github.com/user-attachments/assets/21858627-174b-4a9f-9ef2-7f05cc61520e" />
+<img width="1112" height="356" alt="495181430-21858627-174b-4a9f-9ef2-7f05cc61520e" src="https://github.com/user-attachments/assets/ec04d88e-0bb0-4803-9f00-a18c31b72882" />
 
 This does mean that, in practice, we can only perform **PPID spoofing** via `CreateProcess` or `CreateProcessAsUser`. When I realized this, several questions came to mind about why `CreateProcessWithToken/LogonW` have this limitation. My guess was:
 
@@ -327,16 +327,16 @@ Thanks to WinDbg, we can easily place a breakpoint at `To_SECONDARYLOGONINFOW` t
 
 > Note: This SecLogon request was sent using `CreateProcessWithLogonW`:
 
-<img width="1163" height="536" alt="SeclCreateProcessWithLogonW-pt2" src="https://github.com/user-attachments/assets/358b0bcb-e51d-43a4-886f-76f72cab39d2" />
+<img width="1163" height="536" alt="495181769-358b0bcb-e51d-43a4-886f-76f72cab39d2" src="https://github.com/user-attachments/assets/a6c090d4-0410-42cd-aacc-94686e57f97d" />
 
 If we check the last members of the `_SECL_REQUEST` structure, after `_STARTUPINFO`, we will see the **dwProcessId**, **dwLogonFlags** and **dwCreationFlags** members:  
 
-<img width="668" height="233" alt="SeclCreateProcessWithLogonW-pt5-first" src="https://github.com/user-attachments/assets/4626639a-a254-4623-b86d-5965aeb5f21c" />
+<img width="668" height="233" alt="495181967-4626639a-a254-4623-b86d-5965aeb5f21c" src="https://github.com/user-attachments/assets/dc6a3848-0302-445c-a1d0-5fdb134763ab" />
 
 However, if we send the request by using `CreateProcessWithTokenW` instead, we will find another interesting member at the end of  the `_SECL_REQUEST` structure:
 The `hToken` field, the last member of the structure, is used when creating a new process based on an existing token instead of using logon credentials.
 
-<img width="712" height="241" alt="SeclCreateProcessWithLogonW-pt4" src="https://github.com/user-attachments/assets/222b3601-6de1-4326-b411-ebc2a246094d" />
+<img width="712" height="241" alt="495182109-222b3601-6de1-4326-b411-ebc2a246094d" src="https://github.com/user-attachments/assets/ba61b2cb-bd1f-4810-92c1-2884ca799586" />
 
 Finally, the `_SECONDARYLOGONINFOW` layout, built by `To_SECONDARYLOGONINFOW`, looks like this:
 
@@ -745,8 +745,8 @@ void midl_user_free(void* p) {
 
 ### Demonstration
 
-<img width="1002" height="473" alt="image" src="https://github.com/user-attachments/assets/19dd55c2-d1ed-45af-9679-c59ec7101a65" />
+<img width="1002" height="473" alt="495192985-19dd55c2-d1ed-45af-9679-c59ec7101a65" src="https://github.com/user-attachments/assets/6bb3444a-60a9-4c56-9814-8ec9e4c91693" />
 
-<img width="637" height="692" alt="image" src="https://github.com/user-attachments/assets/7168cd05-401f-43ac-a576-50b1e8d4c391" />
+<img width="637" height="692" alt="495193456-7168cd05-401f-43ac-a576-50b1e8d4c391" src="https://github.com/user-attachments/assets/902c6f7a-02ef-45d7-9c3d-2cf5b5c9ab8b" />
 
 
